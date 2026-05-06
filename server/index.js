@@ -193,8 +193,12 @@ async function callAI(prompt) {
     const baseUrl = process.env.OPENAI_API_BASE || "https://api.openai.com/v1";
     const model = process.env.OPENAI_MODEL || "gpt-4o";
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000); // 55s timeout
+
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -221,11 +225,13 @@ async function callAI(prompt) {
     });
 
     if (!response.ok) {
+      clearTimeout(timeout);
       const err = await response.text();
       throw new Error(`API error: ${err}`);
     }
 
     const data = await response.json();
+    clearTimeout(timeout);
     const raw = data.choices[0].message.content;
     return safeParseJSON(raw);
 
