@@ -1,7 +1,7 @@
 /**
  * server/index.js
  * Express backend — Adversarial Contract Analysis Engine
- * v6: Enforced complete scenario coverage (min 3, typed, clause-linked)
+ * v8: Atticus-inspired hybrid clause pre-classification
  */
 
 require("dotenv").config();
@@ -11,6 +11,7 @@ const multer = require("multer");
 const fetch = require("node-fetch");
 const mammoth = require("mammoth");
 const path = require("path");
+const { classifyContract } = require("./clauseClassifier");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,265 +42,105 @@ function rateLimit(req, res, next) {
   next();
 }
 
-// ── Prompt v6 ─────────────────────────────────────────────────────────────────
-function buildPrompt(contractText) {
-  return `You are an adversarial legal analyst, contract security auditor, and cross-clause intelligence engine.
+// ── Prompt builder (now receives pre-classified clause map) ───────────────────
+function buildPrompt(contractText, taggedSummary) {
+  return `You are an adversarial legal contract analyst. Analyze the contract below and return ONLY valid JSON — no markdown, no code fences.
 
-You operate in FOUR phases. Complete each phase fully and in order.
+CLAUSE PRE-CLASSIFICATION (provided by Atticus-inspired classifier — use these tags, do not re-detect clause types from scratch):
+The following clauses have already been identified and tagged. Use these tags when referencing sections in your output.
+${taggedSummary}
 
-═══════════════════════════════════════════════════
-PHASE 1 — CLAUSE-LEVEL ANALYSIS
-═══════════════════════════════════════════════════
+RULES:
+- Use "Client" and "Developer" consistently (capital letters, no synonyms)
+- Every issue needs all fields: section, tags, risk_level, issue, root_cause, exploit, fix, revised_clause
+- Use the pre-classified tags above for the "tags" field in each issue — only override if a clause is clearly mis-tagged
+- revised_clause max 60 words, must name both parties, no vague terms ("reasonable", "deemed", "sole discretion", "as needed", "timely", "substantial completion")
+- Every payment fix must include: (1) milestone-based payments, (2) Client written approval before payment releases, (3) refund formula if milestone not delivered
+- Every fix must name the mechanism removed, the replacement added, and the trigger condition
 
-Read every clause. For each clause:
+CRITICAL PATTERNS TO ALWAYS CHECK:
+1. PAYMENT RISK: upfront payment not tied to milestones, or non-refundable → HIGH
+2. ACCEPTANCE TRAP: silence = acceptance, or vague/short objection window → HIGH
+3. COMPLETION CONTROL: one party defines "done" unilaterally → HIGH
+4. TERMINATION IMBALANCE: party exits keeping money without delivering work → HIGH
+5. IP BLOCK: IP transfer depends on vague or one-party-controlled completion → CRITICAL
+6. LIABILITY MISMATCH: uncapped or one-sided liability → HIGH
 
-STEP 1 — TAG with every applicable category:
-  PAYMENT | DELIVERY | ACCEPTANCE | TERMINATION | COMPLETION | INTELLECTUAL_PROPERTY | LIABILITY | REVISION | CONFIDENTIALITY | DISPUTE
+OWNERSHIP BLOCK (always check):
+If Client pays + IP transfer depends on completion + completion is vague or Developer-controlled
+→ Mark CRITICAL. Fix: IP transfers upon full payment + Developer written delivery notice only.
 
-STEP 2 — IDENTIFY structural defect:
-  - Ambiguity: undefined terms, subjective standards
-  - Unilateral control: one party decides outcome, criteria, or timing
-  - Missing dependency: obligation not gated on required condition
-  - Asymmetric obligation: one party bears all risk
-  - Silence mechanism: inaction treated as consent
+CROSS-CLAUSE CHAINS (combined_risks):
+Check these combinations and include if found:
+- PAYMENT + TERMINATION: money kept without delivery → CRITICAL if upfront > 30%
+- PAYMENT + COMPLETION + IP: paid but ownership blocked → CRITICAL always
+- DELIVERY + ACCEPTANCE + SILENCE: defective work auto-accepted → CRITICAL if window undefined
+- TERMINATION + IP: no IP clause on exit → CRITICAL
 
-STEP 3 — INTERNAL FIX VALIDATION before writing any fix:
-  Q1. Root cause: WHY does the exploit exist?
-  Q2. After fix applied: can the same exploit still execute? If YES → redesign.
-  Q3. Does the revised clause contain: "reasonable", "sole discretion", "deemed",
-      "as needed", "timely", "appropriate", "substantial", "core features"?
-      If YES → replace with objective, bilateral, measurable language.
+ABUSE SCENARIOS (minimum 3, mandatory):
+Include whichever apply:
+- PAYMENT_LOSS: Client pays → no delivery → no refund
+- ACCEPTANCE_TRAP: bad work delivered → silence window → legally accepted → payment due
+- OWNERSHIP_BLOCK: Client pays in full → Developer blocks completion → IP never transfers
+- TERMINATION_EXPLOIT: Developer gets paid → terminates → keeps money → delivers nothing
 
-FIX STRENGTH RULES:
-  ACCEPTANCE:  Remove silence-based acceptance. Require explicit written approval with objective checklist. Non-response triggers dispute — not acceptance.
-  PAYMENT:     Gate every payment behind named milestone with objective criteria. Payment only after written milestone acceptance. Define refund formula.
-  TERMINATION: Exact refund formula. Delivery of completed work before settlement. Notice in calendar days. IP disposition on termination.
-  COMPLETION:  Mutual written sign-off. Objective criteria defined by BOTH parties before work starts. Non-response triggers dispute — not acceptance.
-  LIABILITY:   Bilateral cap. Excluded damage categories listed. Carve-outs for fraud and gross negligence.
-  IP:          Transfer on BOTH full payment AND written delivery. Interim license during development. Termination IP disposition defined.
+Each scenario step must name the clause that permits it.
 
-═══════════════════════════════════════════════════
-PHASE 2 — OWNERSHIP BLOCK & COMPLETION CONTROL ANALYSIS
-(Mandatory dedicated pass — run independently after Phase 1)
-═══════════════════════════════════════════════════
-
-STEP A — IP TRANSFER SCAN
-  Find every clause that transfers ownership. For each:
-  - What exact condition triggers transfer?
-  - Who controls or defines that condition?
-  - Is the condition objective and bilateral?
-
-STEP B — COMPLETION CONTROL DETECTION
-  FLAG CRITICAL if ANY:
-  - One party alone determines completion
-  - Completion uses vague terms ("substantially complete", "core features", "working version")
-  - Client silence = completion/acceptance
-  - Revision exhaustion triggers deemed completion
-  - Approval required but criteria undefined
-
-STEP C — PAYMENT-COMPLETION-IP DEPENDENCY CHAIN
-  If ALL THREE exist simultaneously:
-    1. Payment required before or during work
-    2. IP transfer depends on "completion" or "approval"
-    3. Completion or approval controlled/defined by one party OR vague
-  → OWNERSHIP BLOCK → mark CRITICAL
-  → Add to issues array with tags: ["INTELLECTUAL_PROPERTY", "COMPLETION", "PAYMENT"]
-  → Fix must: transfer IP upon full payment + written delivery, not upon subjective completion
-
-STEP D — TERMINATION IP GAP
-  If contract terminates mid-project with no clause covering IP disposition:
-  → Add CRITICAL issue: client paid for work but cannot legally own or use it post-termination
-
-═══════════════════════════════════════════════════
-PHASE 3 — CROSS-CLAUSE INTELLIGENCE ENGINE
-(Run after Phases 1 and 2. Reveal only what combinations create — not individual issues.)
-═══════════════════════════════════════════════════
-
-MANDATORY RELATIONSHIP CHECKS:
-
-A. PAYMENT + ACCEPTANCE
-   CRITICAL if non-refundable. Risk: payment before valid acceptance mechanism.
-
-B. PAYMENT + TERMINATION
-   CRITICAL if upfront > 30%. Risk: money retained without delivery on exit.
-
-C. PAYMENT + COMPLETION + IP
-   CRITICAL always. Use Phase 2 finding — do not duplicate, reference it.
-
-D. DELIVERY + ACCEPTANCE + SILENCE
-   CRITICAL if window < 5 days or undefined. Risk: defective work legally accepted through inaction.
-
-E. PARTIAL DELIVERY + ACCEPTANCE + PAYMENT
-   Always HIGH. Risk: minimal output triggers full payment.
-
-F. REVISION + COMPLETION + ACCEPTANCE
-   HIGH if revision limits exist without quality criteria. Risk: exhaustion triggers deemed completion.
-
-G. TERMINATION + IP + PAYMENT
-   CRITICAL if no termination IP clause. Risk: paid-for work not transferable on exit.
-
-H. LIABILITY + INDEMNITY + PAYMENT
-   HIGH if cap absent or one-sided. Risk: unlimited asymmetric exposure.
-
-Also run OPEN-ENDED CHAIN DETECTION for any additional 2-3 clause combinations creating non-obvious High or Critical exploit paths not listed above.
-
-Each combined risk entry must include:
-- exploit_chain: 3-5 numbered steps naming the specific clause that permits each step
-- what_combination_creates: one sentence — the emergent risk neither clause creates alone
-- impact: concrete financial or legal consequence
-
-═══════════════════════════════════════════════════
-PHASE 4 — ABUSE SCENARIO ENFORCEMENT
-(Mandatory final pass. This phase runs AFTER Phases 1-3 and uses their findings as inputs.)
-═══════════════════════════════════════════════════
-
-RULE 1 — MINIMUM COUNT
-  You MUST generate at least 3 abuse_simulations. If fewer than 3 risks exist, generate 3 anyway using the most significant risks found.
-
-RULE 2 — SCENARIO TYPE CHECKLIST
-  Check each of the following 4 scenario types. If the risk is present in the contract, that scenario is MANDATORY:
-
-  TYPE 1 — PAYMENT LOSS
-    Trigger condition: payment is upfront, non-refundable, or not milestone-linked
-    Title format: "Payment Trap — [specific mechanism from this contract]"
-    Scenario: Client pays → work not delivered or incomplete → no refund mechanism → client loses payment
-    Must show: which clause requires payment, which clause fails to protect against non-delivery
-
-  TYPE 2 — ACCEPTANCE TRAP
-    Trigger condition: silence = acceptance OR vague acceptance criteria OR partial delivery counts
-    Title format: "Forced Acceptance — [specific mechanism from this contract]"
-    Scenario: Substandard work delivered → client misses narrow/vague objection window → work legally accepted → payment due in full
-    Must show: what the silence window is, what "accepted" work triggers (payment, IP transfer, etc.)
-
-  TYPE 3 — OWNERSHIP BLOCK
-    Trigger condition: IP transfer depends on vague or unilaterally controlled completion
-    Title format: "Paid in Full, Owns Nothing — [specific mechanism from this contract]"
-    Scenario: Full payment made → developer withholds completion declaration → IP never transfers → client cannot use product
-    Must show: what completion condition blocks transfer, what developer gains by withholding
-
-  TYPE 4 — TERMINATION EXPLOIT
-    Trigger condition: termination clause allows one party to exit while retaining payment without delivery
-    Title format: "Exit and Keep — [specific mechanism from this contract]"
-    Scenario: Developer receives payment → triggers termination → no refund formula → no delivery obligation → client left with nothing
-    Must show: which termination clause is used, what is and is not returned
-
-RULE 3 — SCENARIO FORMAT (mandatory for every scenario)
-  {
-    "title": "Specific, concrete title — not generic",
-    "scenario_type": "PAYMENT_LOSS | ACCEPTANCE_TRAP | OWNERSHIP_BLOCK | TERMINATION_EXPLOIT | OTHER",
-    "clauses_exploited": ["Section X", "Section Y"],
-    "steps": [
-      "Step 1: [Exploiting party] takes [specific action] → permitted by [Section X] because [exact reason]",
-      "Step 2: [Condition] is now active → [Section Y] states [exact effect]",
-      "Step 3: [Victim party] attempts [remedy] → blocked because [specific clause or absence of clause]",
-      "Step 4: Outcome — [victim] loses [specific thing: money amount, IP, right, remedy]"
-    ],
-    "financial_impact": "Concrete consequence — name the money lost, the right extinguished, or the obligation created. Not vague.",
-    "legal_impact": "What the victim cannot do legally as a result — cannot sue, cannot use product, cannot recover payment, etc."
-  }
-
-RULE 4 — QUALITY ENFORCEMENT
-  A scenario FAILS if:
-  - Steps are vague (e.g., "Client may lose money")
-  - Steps do not name the clause that permits each action
-  - financial_impact is not concrete (must name dollar exposure or specific asset lost)
-  - legal_impact is missing
-  - The scenario is a restatement of another scenario with different words
-  - The exploiting party's gain is not identified
-
-RULE 5 — SCENARIO ORDERING
-  Order scenarios by severity: most financially damaging first.
-  If OWNERSHIP BLOCK and PAYMENT LOSS both exist, OWNERSHIP BLOCK goes first.
-
-═══════════════════════════════════════════════════
-CRITICAL PATTERN DETECTION (always check all 6):
-
-1. PAYMENT RISK: upfront >50% OR non-refundable OR not milestone-linked → HIGH
-2. ACCEPTANCE TRAP: silence=acceptance OR window <5 days OR partial=full → HIGH
-3. COMPLETION CONTROL: one party defines done OR vague criteria → HIGH
-4. TERMINATION IMBALANCE: money kept without delivery on exit → HIGH
-5. IP RISK: ownership blocked by vague or unilateral trigger → HIGH (CRITICAL if payment already made)
-6. LIABILITY MISMATCH: uncapped OR applies to one side only → HIGH
-
-═══════════════════════════════════════════════════
-OUTPUT — Return ONLY this JSON object. No markdown. No code fences. No text outside JSON.
-
+OUTPUT JSON:
 {
-  "summary": "2-3 sentences: which party is most exposed, dominant exploit category, single most urgent fix",
+  "summary": "2-3 sentences on risk, exposed party, most urgent fix",
   "overall_risk": "Low|Medium|High|Critical",
-
   "issues": [
     {
-      "section": "Clause name or number",
-      "tags": ["PAYMENT", "ACCEPTANCE"],
-      "risk_level": "Low|Medium|High",
-      "issue": "One sentence: the structural defect",
-      "root_cause": "One sentence: WHY the exploit exists",
-      "exploit": "1-2 sentences: exact adversarial action sequence",
-      "fix": "2-3 sentences: mechanism removed, replacement added, exploit path confirmed closed",
-      "revised_clause": "Full rewritten clause. Bilateral, objective, no ambiguous terms. Max 80 words."
+      "section": "clause name from the pre-classification above",
+      "tags": ["PAYMENT"],
+      "risk_level": "High",
+      "issue": "one sentence defect",
+      "root_cause": "one sentence why exploit exists",
+      "exploit": "1-2 sentences exact adversarial sequence",
+      "fix": "2-3 sentences: what removed, what added, trigger condition, exploit closed",
+      "revised_clause": "rewritten clause, max 60 words, bilateral, objective"
     }
   ],
-
   "combined_risks": [
     {
-      "clauses_involved": ["Section X", "Section Y", "Section Z"],
-      "tags_involved": ["PAYMENT", "ACCEPTANCE", "TERMINATION"],
+      "clauses_involved": ["Section X", "Section Y"],
+      "tags_involved": ["PAYMENT", "TERMINATION"],
       "exploit_chain": [
-        "Step 1: Party A does X → Section 3 permits this because...",
-        "Step 2: Condition Y triggered → Section 5 requires...",
-        "Step 3: Party B has no remedy because...",
-        "Step 4: Outcome — Party B loses [specific thing]"
+        "Step 1: Developer does X → Section 3 permits because [reason]",
+        "Step 2: Client has no remedy → Section 5 blocks because [reason]",
+        "Step 3: Outcome — Client loses [specific thing]"
       ],
-      "what_combination_creates": "One sentence: emergent risk neither clause creates alone",
-      "impact": "Concrete financial or legal consequence",
+      "what_combination_creates": "one sentence emergent risk",
+      "impact": "specific financial or legal consequence",
       "severity": "High|Critical"
     }
   ],
-
   "abuse_simulations": [
     {
-      "title": "Specific, concrete title",
+      "title": "specific title",
       "scenario_type": "PAYMENT_LOSS|ACCEPTANCE_TRAP|OWNERSHIP_BLOCK|TERMINATION_EXPLOIT|OTHER",
-      "clauses_exploited": ["Section X", "Section Y"],
+      "clauses_exploited": ["Section X"],
       "steps": [
-        "Step 1: [Exploiting party] takes [action] → permitted by [Section X] because [reason]",
-        "Step 2: [Effect] → [Section Y] states [consequence]",
-        "Step 3: [Victim] attempts [remedy] → blocked because [clause or absence]",
-        "Step 4: Outcome — [victim] loses [specific asset or right]"
+        "Step 1: Developer does X → permitted by Section 2 because [reason]",
+        "Step 2: Client attempts remedy → blocked because [clause or absence]",
+        "Step 3: Outcome — Client loses [specific asset or right]"
       ],
-      "financial_impact": "Concrete — name the money lost or asset at risk",
-      "legal_impact": "What victim legally cannot do as a result"
+      "financial_impact": "specific monetary loss",
+      "legal_impact": "specific right extinguished"
     }
   ],
-
   "top_fixes": [
     {
       "rank": 1,
-      "issue": "Short label",
-      "why_urgent": "Specific financial or legal consequence if unfixed",
-      "action": "Exact change: what to remove, what to add, what to define"
+      "issue": "short label",
+      "why_urgent": "specific consequence if unfixed",
+      "action": "exact change with trigger condition"
     }
   ]
 }
 
-═══════════════════════════════════════════════════
-HARD FAILURE CONDITIONS — output is rejected if:
-- fewer than 3 abuse_simulations generated
-- any scenario missing clauses_exploited, scenario_type, or legal_impact
-- any scenario step does not name the clause permitting the action
-- financial_impact is vague (e.g., "client may lose money")
-- two scenarios describe the same exploit with different wording
-- IP clause analyzed without checking who controls transfer trigger
-- ownership block present but not marked CRITICAL
-- combined_risks empty
-- any combined risk restates a clause issue without showing interaction effect
-- any revised clause contains: "reasonable", "sole discretion", "deemed", "as needed",
-  "timely", "appropriate", "substantial completion", "core features"
-- fix only extends a time window without changing the underlying mechanism
-- CRITICAL not assigned when full payment possible + ownership blockable
-
-CONTRACT TO ANALYZE:
+CONTRACT:
 ---
 ${contractText}
 ---`;
@@ -348,7 +189,7 @@ async function callAI(prompt) {
         messages: [
           {
             role: "system",
-            content: "You are an adversarial legal contract analyst and cross-clause intelligence engine. Respond ONLY with a valid JSON object. No markdown, no code fences, no text before or after the JSON.",
+            content: "You are an adversarial legal contract analyst. Respond ONLY with a valid JSON object. No markdown, no code fences, no text before or after the JSON.",
           },
           { role: "user", content: prompt },
         ],
@@ -370,7 +211,7 @@ async function callAI(prompt) {
   }
 }
 
-// ── Validate + enforce minimum scenario count ─────────────────────────────────
+// ── Validate response ─────────────────────────────────────────────────────────
 function validateResult(result) {
   if (!result || typeof result !== "object") throw new Error("AI returned non-object response");
   if (!Array.isArray(result.issues)) throw new Error("Missing issues array");
@@ -380,9 +221,8 @@ function validateResult(result) {
   if (!result.summary) result.summary = "Analysis complete.";
   if (!result.overall_risk) result.overall_risk = "Medium";
 
-  // Server-side guard: warn if AI returned fewer than 3 scenarios
   if (result.abuse_simulations.length < 3) {
-    console.warn(`⚠ Warning: AI returned only ${result.abuse_simulations.length} scenario(s). Prompt enforcement may have failed.`);
+    console.warn(`⚠ Only ${result.abuse_simulations.length} scenario(s) — minimum is 3`);
   }
 
   return result;
@@ -400,8 +240,36 @@ app.post("/api/analyze", rateLimit, async (req, res) => {
   }
 
   try {
-    const result = await callAI(buildPrompt(contractText));
+    // ── Step 1: Pre-classify clauses using Atticus-inspired classifier ──────
+    const { clauses, stats, taggedSummary } = classifyContract(contractText);
+
+    console.log(`\n📋 Clause pre-classification complete:`);
+    console.log(`   Total clauses: ${stats.total}`);
+    console.log(`   Classified:    ${stats.classified}`);
+    console.log(`   Unclassified:  ${stats.unclassified}`);
+    console.log(`   Tag breakdown: ${JSON.stringify(stats.tagCounts)}`);
+
+    // ── Step 2: Build prompt with pre-tagged clause map ────────────────────
+    const prompt = buildPrompt(contractText, taggedSummary);
+
+    // ── Step 3: Run adversarial AI analysis ────────────────────────────────
+    const result = await callAI(prompt);
+
+    // ── Step 4: Attach pre-classification data to response ─────────────────
+    // The frontend receives both the AI analysis AND the raw clause map
+    // so it can display confidence scores and classifier metadata
+    result._classification = {
+      clauses: clauses.map(c => ({
+        name: c.name,
+        tags: c.tags,
+        confidence: c.confidence,
+        classified: c.classified
+      })),
+      stats
+    };
+
     res.json(validateResult(result));
+
   } catch (err) {
     console.error("Analysis error:", err.message);
     if (err instanceof SyntaxError) {
@@ -454,6 +322,6 @@ if (process.env.NODE_ENV === "production") {
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n✅ Server running at http://localhost:${PORT}`);
-  console.log(`   Mode: Adversarial Contract Analysis Engine v6`);
+  console.log(`   Mode: Adversarial Analysis Engine v8 + Atticus Classifier`);
   console.log(`   AI:   ${process.env.ANTHROPIC_API_KEY ? "Anthropic Claude ✓" : process.env.OPENAI_API_KEY ? `OpenAI-compatible (${process.env.OPENAI_API_BASE || "openai.com"}) ✓` : "⚠ NO API KEY SET"}\n`);
 });
