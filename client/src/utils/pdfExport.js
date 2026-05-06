@@ -1,289 +1,550 @@
 /**
  * pdfExport.js
- * Generates a downloadable multi-page PDF audit report.
- * Fixed field names to match API schema: section / issue / fix / revised_clause
+ * Clean, professional white-background PDF audit report.
+ * No emojis, no dark backgrounds, proper typography hierarchy.
  */
 
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
+const BRAND   = [89, 74, 226];   // #5b4ae2 purple
+const INK     = [22, 22, 38];    // near-black
+const MUTED   = [110, 108, 140]; // grey
+const RULE    = [220, 218, 235]; // light divider
+
+const RISK_COLOR = {
+  Critical: [200, 20,  50],
+  High:     [210, 50,  70],
+  Medium:   [180, 100, 10],
+  Low:      [20,  140, 100],
+};
+
+const RISK_BG = {
+  Critical: [255, 235, 238],
+  High:     [255, 240, 242],
+  Medium:   [255, 248, 230],
+  Low:      [230, 248, 240],
+};
+
 export function downloadAnalysisAsPDF(analysis, contractName = "Contract") {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageWidth  = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin     = 18;
-  const contentW   = pageWidth - margin * 2;
+  const doc      = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const PW       = doc.internal.pageSize.getWidth();
+  const PH       = doc.internal.pageSize.getHeight();
+  const ML       = 20;   // margin left
+  const MR       = 20;   // margin right
+  const CW       = PW - ML - MR;
+  const FOOTER_H = 14;
 
-  const riskColors = {
-    Critical: [220, 20,  60],
-    High:     [220, 38,  60],
-    Medium:   [217, 119, 6],
-    Low:      [16,  163, 127],
-  };
+  const issues  = analysis.issues || [];
+  const chains  = analysis.combined_risks || [];
+  const sims    = analysis.abuse_simulations || [];
+  const fixes   = analysis.top_fixes || [];
+  const counts  = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+  issues.forEach(i => { if (counts[i.risk_level] !== undefined) counts[i.risk_level]++; });
 
-  function ensurePage(y, need = 20) {
-    if (y + need > pageHeight - 14) { doc.addPage(); return margin; }
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function newPage() {
+    doc.addPage();
+    // White background
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, PW, PH, "F");
+    drawFooter();
+    return ML;
+  }
+
+  function check(y, need) {
+    if (y + need > PH - FOOTER_H - 6) return newPage();
     return y;
   }
 
-  function addText(text, x, y, maxW, size, color, style = "normal", lineH = 5.2) {
+  function txt(text, x, y, maxW, size, color, style = "normal", lh = null) {
     doc.setFontSize(size);
     doc.setFont("helvetica", style);
     doc.setTextColor(...color);
+    const lineH = lh || size * 0.45;
     const lines = doc.splitTextToSize(String(text || ""), maxW);
     lines.forEach(line => { doc.text(line, x, y); y += lineH; });
     return y;
   }
 
-  let y = margin;
+  function rule(y, color = RULE) {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.3);
+    doc.line(ML, y, PW - MR, y);
+    return y + 4;
+  }
 
-  // ── Page 1: Dark header ────────────────────────────────────────────────────
-  doc.setFillColor(9, 9, 15);
-  doc.rect(0, 0, pageWidth, 44, "F");
-
-  doc.setTextColor(240, 239, 248);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.text("RiskRadar — Contract Exploit Audit", margin, 17);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(152, 150, 176);
-  doc.text(`Generated: ${new Date().toLocaleString()}`, margin, 26);
-  doc.text(`Document: ${contractName}`, margin, 32);
-  doc.text(`Overall Risk: ${analysis.overall_risk || "Unknown"}`, margin, 38);
-
-  y = 54;
-
-  // ── Risk count summary boxes ───────────────────────────────────────────────
-  const issues = analysis.issues || [];
-  const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-  issues.forEach(i => { if (counts[i.risk_level] !== undefined) counts[i.risk_level]++; });
-
-  doc.setFillColor(19, 19, 31);
-  doc.roundedRect(margin, y, contentW, 28, 3, 3, "F");
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(152, 150, 176);
-  doc.text("ISSUE BREAKDOWN", margin + 6, y + 7);
-
-  const levels = ["Critical", "High", "Medium", "Low"];
-  const colW = contentW / 4;
-  levels.forEach((level, i) => {
-    const cx = margin + 6 + i * colW;
-    const [r, g, b] = riskColors[level] || [150, 150, 150];
-    doc.setTextColor(r, g, b);
-    doc.setFontSize(16);
+  function sectionHeading(y, label) {
+    y = check(y, 14);
+    doc.setFillColor(...BRAND);
+    doc.rect(ML, y, 3, 8, "F");
+    doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text(String(counts[level]), cx, y + 20);
+    doc.setTextColor(...INK);
+    doc.text(label.toUpperCase(), ML + 6, y + 6);
+    return y + 12;
+  }
+
+  function riskPill(x, y, level) {
+    const [r, g, b]   = RISK_COLOR[level] || MUTED;
+    const [br,bg,bb]  = RISK_BG[level]    || [240,240,240];
+    const label        = level || "Unknown";
+    const w            = 22;
+    const h            = 5.5;
+    doc.setFillColor(br, bg, bb);
+    doc.roundedRect(x, y - 4, w, h, 1.5, 1.5, "F");
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(r, g, b);
+    doc.text(label, x + w / 2, y, { align: "center" });
+    return x + w + 3;
+  }
+
+  function drawFooter() {
+    const p = doc.getNumberOfPages();
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(152, 150, 176);
-    doc.text(level, cx, y + 26);
+    doc.setTextColor(...MUTED);
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.3);
+    doc.line(ML, PH - FOOTER_H, PW - MR, PH - FOOTER_H);
+    doc.text("RiskRadar  |  For informational purposes only. Not legal advice.", ML, PH - 8);
+    doc.text(`Page ${p}`, PW - MR, PH - 8, { align: "right" });
+  }
+
+  // ── Cover page ─────────────────────────────────────────────────────────────
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, PW, PH, "F");
+
+  // Purple accent bar
+  doc.setFillColor(...BRAND);
+  doc.rect(0, 0, PW, 52, "F");
+
+  // Logo text
+  doc.setFontSize(26);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("RiskRadar", ML, 28);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(200, 196, 255);
+  doc.text("Adversarial Contract Exploit Audit", ML, 38);
+
+  // Overall risk badge on cover
+  const riskLabel = analysis.overall_risk || "Unknown";
+  const [rr, rg, rb] = RISK_COLOR[riskLabel] || MUTED;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(rr, rg, rb);
+  doc.text(`OVERALL RISK: ${riskLabel.toUpperCase()}`, PW - MR, 28, { align: "right" });
+
+  let y = 72;
+
+  // Document meta block
+  doc.setFillColor(247, 246, 252);
+  doc.roundedRect(ML, y, CW, 32, 3, 3, "F");
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...MUTED);
+  doc.text("DOCUMENT",     ML + 8, y + 10);
+  doc.text("GENERATED",    ML + 8, y + 18);
+  doc.text("TOTAL ISSUES", ML + 8, y + 26);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...INK);
+  doc.text(contractName,                  ML + 52, y + 10);
+  doc.text(new Date().toLocaleString(),   ML + 52, y + 18);
+  doc.text(String(issues.length),         ML + 52, y + 26);
+  y += 40;
+
+  // Risk breakdown boxes on cover
+  const boxW = CW / 4 - 3;
+  ["Critical","High","Medium","Low"].forEach((level, i) => {
+    const bx = ML + i * (boxW + 4);
+    const [cr, cg, cb]  = RISK_COLOR[level];
+    const [br, bg2, bb] = RISK_BG[level];
+    doc.setFillColor(br, bg2, bb);
+    doc.roundedRect(bx, y, boxW, 24, 3, 3, "F");
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(cr, cg, cb);
+    doc.text(String(counts[level]), bx + boxW / 2, y + 14, { align: "center" });
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...MUTED);
+    doc.text(level, bx + boxW / 2, y + 21, { align: "center" });
   });
-  y += 36;
+  y += 34;
 
-  // ── Summary ────────────────────────────────────────────────────────────────
+  // Summary box on cover
   if (analysis.summary) {
-    y = addText(analysis.summary, margin, y, contentW, 9, [100, 98, 120], "italic");
-    y += 6;
+    doc.setFillColor(247, 246, 252);
+    doc.roundedRect(ML, y, CW, 4, 2, 2, "F");
+    const sumLines = doc.splitTextToSize(analysis.summary, CW - 16);
+    const sumH = sumLines.length * 5.2 + 14;
+    doc.setFillColor(247, 246, 252);
+    doc.roundedRect(ML, y, CW, sumH, 3, 3, "F");
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...BRAND);
+    doc.text("ASSESSMENT SUMMARY", ML + 8, y + 8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...INK);
+    doc.text(sumLines, ML + 8, y + 15);
+    y += sumH + 6;
   }
 
-  // ── Issues table (fixed field names: section, issue, risk_level, fix) ──────
-  if (issues.length === 0) {
-    y = addText("✓ No significant issues found.", margin, y, contentW, 11, [62, 207, 142]);
-  } else {
-    doc.autoTable({
-      startY: y,
-      head: [["#", "Section", "Risk", "Issue", "Fix"]],
-      body: issues.map((issue, idx) => [
-        idx + 1,
-        issue.section  || "—",   // ← was issue.clause  (wrong)
-        issue.risk_level || "—",
-        issue.issue    || "—",   // ← was issue.problem (wrong)
-        issue.fix      || "—",   // ← was issue.suggestion (wrong)
-      ]),
-      styles: {
-        font: "helvetica", fontSize: 7.5, cellPadding: 3,
-        overflow: "linebreak", textColor: [60, 58, 80],
-      },
-      headStyles: {
-        fillColor: [19, 19, 31], textColor: [152, 150, 176],
-        fontStyle: "bold", fontSize: 7.5,
-      },
-      columnStyles: {
-        0: { cellWidth: 7 },
-        1: { cellWidth: 32 },
-        2: { cellWidth: 16 },
-        3: { cellWidth: 62 },
-        4: { cellWidth: 57 },
-      },
-      didParseCell(data) {
-        if (data.column.index === 2 && data.section === "body") {
-          const [r, g, b] = riskColors[data.cell.raw] || [150, 150, 150];
-          data.cell.styles.textColor = [r, g, b];
-          data.cell.styles.fontStyle = "bold";
-        }
-      },
-      margin: { left: margin, right: margin },
-    });
-    y = doc.lastAutoTable.finalY + 10;
-  }
+  // Chain + scenario count on cover
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...MUTED);
+  doc.text(`${chains.length} exploit chain${chains.length !== 1 ? "s" : ""} detected   |   ${sims.length} abuse scenario${sims.length !== 1 ? "s" : ""} simulated   |   ${fixes.length} priority fix${fixes.length !== 1 ? "es" : ""} recommended`, ML, y + 8);
 
-  // ── Exploit chains page ────────────────────────────────────────────────────
-  const chains = analysis.combined_risks || [];
-  if (chains.length > 0) {
-    doc.addPage();
-    y = margin;
-    y = addText("Multi-Clause Exploit Chains", margin, y, contentW, 14, [240, 239, 248], "bold");
-    y += 4;
+  drawFooter();
 
-    chains.forEach((cr, ci) => {
-      y = ensurePage(y, 40);
-      const [r, g, b] = cr.severity === "Critical" ? riskColors.Critical : riskColors.High;
+  // ── Page 2+: Issues table ──────────────────────────────────────────────────
+  newPage();
+  y = ML;
+  y = sectionHeading(y, "Individual Findings");
 
-      doc.setFillColor(19, 19, 31);
-      doc.rect(margin, y - 4, contentW, 10, "F");
-      doc.setTextColor(r, g, b);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
-      doc.text(
-        `Chain ${ci + 1}: ${(cr.clauses_involved || []).join(" + ")}  [${cr.severity || "High"}]`,
-        margin + 3, y + 3
-      );
-      y += 12;
-
-      if (cr.what_combination_creates) {
-        y = addText(`Emergent Risk: ${cr.what_combination_creates}`, margin + 3, y, contentW - 6, 8, [160, 154, 200], "italic");
-        y += 2;
+  doc.autoTable({
+    startY: y,
+    head: [["#", "Section", "Risk", "Issue", "Fix"]],
+    body: issues.map((issue, idx) => [
+      idx + 1,
+      issue.section    || "—",
+      issue.risk_level || "—",
+      issue.issue      || "—",
+      issue.fix        || "—",
+    ]),
+    styles: {
+      font: "helvetica",
+      fontSize: 8,
+      cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+      overflow: "linebreak",
+      textColor: INK,
+      lineColor: RULE,
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: [89, 74, 226],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 8,
+    },
+    alternateRowStyles: {
+      fillColor: [250, 249, 255],
+    },
+    columnStyles: {
+      0: { cellWidth: 8,  halign: "center" },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 18, halign: "center" },
+      3: { cellWidth: 60 },
+      4: { cellWidth: 58 },
+    },
+    didParseCell(data) {
+      if (data.column.index === 2 && data.section === "body") {
+        const level = data.cell.raw;
+        const [r, g, b]    = RISK_COLOR[level] || MUTED;
+        const [br, bg2, bb] = RISK_BG[level]   || [240, 240, 240];
+        data.cell.styles.textColor   = [r, g, b];
+        data.cell.styles.fillColor   = [br, bg2, bb];
+        data.cell.styles.fontStyle   = "bold";
       }
+    },
+    margin: { left: ML, right: MR, top: ML, bottom: FOOTER_H + 6 },
+  });
 
-      (cr.exploit_chain || []).forEach((step, si) => {
-        y = ensurePage(y, 10);
-        y = addText(`  ${si + 1}. ${step}`, margin + 6, y, contentW - 10, 7.5, [180, 178, 200]);
-      });
+  y = doc.lastAutoTable.finalY + 10;
 
-      if (cr.impact) {
-        y = ensurePage(y, 10);
-        y = addText(`Impact: ${cr.impact}`, margin + 3, y, contentW - 6, 7.5, [255, 100, 130], "bold");
-      }
-      y += 8;
-    });
-  }
-
-  // ── Abuse scenarios page ───────────────────────────────────────────────────
-  const sims = analysis.abuse_simulations || [];
-  if (sims.length > 0) {
-    doc.addPage();
-    y = margin;
-    y = addText("Abuse Simulations", margin, y, contentW, 14, [240, 239, 248], "bold");
-    y += 4;
-
-    sims.forEach((sim, si) => {
-      y = ensurePage(y, 40);
-
-      doc.setFillColor(19, 19, 31);
-      doc.rect(margin, y - 4, contentW, 10, "F");
-      doc.setTextColor(244, 169, 66);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
-      doc.text(
-        `Scenario ${si + 1}: ${sim.title || sim.scenario_type || "Exploit"}`,
-        margin + 3, y + 3
-      );
-      y += 12;
-
-      (sim.steps || []).forEach((step, i) => {
-        y = ensurePage(y, 10);
-        y = addText(`  ${i + 1}. ${step}`, margin + 6, y, contentW - 10, 7.5, [180, 178, 200]);
-      });
-
-      if (sim.financial_impact) {
-        y = ensurePage(y, 8);
-        y = addText(`Financial: ${sim.financial_impact}`, margin + 3, y, contentW - 6, 7.5, [255, 100, 130], "bold");
-      }
-      if (sim.legal_impact) {
-        y = ensurePage(y, 8);
-        y = addText(`Legal: ${sim.legal_impact}`, margin + 3, y, contentW - 6, 7.5, [124, 106, 247], "bold");
-      }
-      y += 8;
-    });
-  }
-
-  // ── Revised clauses page ───────────────────────────────────────────────────
+  // ── Revised clauses (inline after table) ──────────────────────────────────
   const withRevisions = issues.filter(i => i.revised_clause);
   if (withRevisions.length > 0) {
-    doc.addPage();
-    y = margin;
-    y = addText("Abuse-Resistant Revised Clauses", margin, y, contentW, 14, [240, 239, 248], "bold");
-    y += 6;
+    y = check(y, 20);
+    y = sectionHeading(y, "Abuse-Resistant Revised Clauses");
 
     withRevisions.forEach((issue, idx) => {
-      y = ensurePage(y, 32);
-      const [r, g, b] = riskColors[issue.risk_level] || [150, 150, 150];
+      const lines  = doc.splitTextToSize(issue.revised_clause || "", CW - 16);
+      const blockH = lines.length * 4.8 + 18;
+      y = check(y, blockH + 6);
 
-      doc.setFillColor(19, 19, 31);
-      doc.rect(margin, y - 4, contentW, 9, "F");
-      doc.setTextColor(r, g, b);
+      // Section label
+      doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
-      doc.text(`[${issue.risk_level}] ${issue.section || `Issue ${idx + 1}`}`, margin + 3, y + 2);
-      y += 10;
+      doc.setTextColor(...INK);
+      doc.text(`${idx + 1}. ${issue.section || ""}`, ML, y);
+      riskPill(ML + doc.getTextWidth(`${idx + 1}. ${issue.section || ""}`) + 4, y, issue.risk_level);
+      y += 6;
 
-      const textLines = doc.splitTextToSize(issue.revised_clause || "", contentW - 10);
-      const boxH = textLines.length * 4.8 + 8;
-      y = ensurePage(y, boxH + 4);
-
-      doc.setFillColor(14, 14, 26);
-      doc.rect(margin, y, contentW, boxH, "F");
+      // Clause box with left accent
+      const [cr, cg, cb] = RISK_COLOR[issue.risk_level] || MUTED;
+      doc.setFillColor(247, 246, 252);
+      doc.rect(ML, y, CW, blockH - 4, "F");
+      doc.setFillColor(cr, cg, cb);
+      doc.rect(ML, y, 3, blockH - 4, "F");
+      doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
-      doc.setTextColor(180, 255, 200);
-      doc.text(textLines, margin + 5, y + 6);
-      y += boxH + 10;
+      doc.setTextColor(...INK);
+      doc.text(lines, ML + 8, y + 7);
+      y += blockH + 4;
     });
   }
 
-  // ── Top fixes page ─────────────────────────────────────────────────────────
-  const fixes = analysis.top_fixes || [];
+  // ── Exploit Chains ─────────────────────────────────────────────────────────
+  if (chains.length > 0) {
+    y = newPage();
+    y = sectionHeading(y, "Multi-Clause Exploit Chains");
+
+    chains.forEach((cr, ci) => {
+      const stepLines  = (cr.exploit_chain || []);
+      const impactLine = cr.impact || "";
+      const emergent   = cr.what_combination_creates || "";
+      const estH       = 22 + stepLines.length * 12 + (emergent ? 10 : 0) + (impactLine ? 8 : 0);
+      y = check(y, estH);
+
+      const sev = cr.severity || "High";
+      const [sr, sg, sb] = RISK_COLOR[sev] || RISK_COLOR.High;
+
+      // Chain header
+      doc.setFillColor(sr, sg, sb);
+      doc.rect(ML, y, CW, 10, "F");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text(
+        `Chain ${ci + 1}  |  ${(cr.clauses_involved || []).join("  +  ")}`,
+        ML + 5, y + 7
+      );
+      doc.text(sev.toUpperCase(), PW - MR - 4, y + 7, { align: "right" });
+      y += 13;
+
+      // Emergent risk
+      if (emergent) {
+        doc.setFillColor(247, 246, 252);
+        const eLines = doc.splitTextToSize(`Emergent risk: ${emergent}`, CW - 12);
+        const eH     = eLines.length * 4.8 + 8;
+        doc.rect(ML, y, CW, eH, "F");
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(...MUTED);
+        doc.text(eLines, ML + 6, y + 6);
+        y += eH + 3;
+      }
+
+      // Steps
+      stepLines.forEach((step, si) => {
+        y = check(y, 12);
+        const sLines = doc.splitTextToSize(step, CW - 16);
+        const sH     = sLines.length * 4.8 + 6;
+
+        // Step number circle
+        doc.setFillColor(...BRAND);
+        doc.circle(ML + 5, y + 4, 3.5, "F");
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text(String(si + 1), ML + 5, y + 5.5, { align: "center" });
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...INK);
+        doc.text(sLines, ML + 12, y + 5);
+        y += sH + 2;
+      });
+
+      // Impact
+      if (impactLine) {
+        y = check(y, 10);
+        const iLines = doc.splitTextToSize(`Impact: ${impactLine}`, CW - 12);
+        const iH     = iLines.length * 4.8 + 8;
+        doc.setFillColor(255, 240, 242);
+        doc.rect(ML, y, CW, iH, "F");
+        doc.setFillColor(...RISK_COLOR.High);
+        doc.rect(ML, y, 3, iH, "F");
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...RISK_COLOR.High);
+        doc.text(iLines, ML + 7, y + 6);
+        y += iH + 6;
+      }
+
+      y = rule(y);
+    });
+  }
+
+  // ── Abuse Scenarios ────────────────────────────────────────────────────────
+  if (sims.length > 0) {
+    y = newPage();
+    y = sectionHeading(y, "Abuse Simulations");
+
+    const SIM_COLORS = {
+      PAYMENT_LOSS:        [180, 100, 10],
+      ACCEPTANCE_TRAP:     [210, 50,  70],
+      OWNERSHIP_BLOCK:     [200, 20,  50],
+      TERMINATION_EXPLOIT: [89,  74, 226],
+    };
+
+    sims.forEach((sim, si) => {
+      const estH = 18 + (sim.steps || []).length * 12 + 16;
+      y = check(y, estH);
+
+      const typeColor = SIM_COLORS[sim.scenario_type] || BRAND;
+      const [tr, tg, tb] = typeColor;
+
+      // Scenario header
+      doc.setFillColor(247, 246, 252);
+      doc.rect(ML, y, CW, 10, "F");
+      doc.setFillColor(tr, tg, tb);
+      doc.rect(ML, y, 4, 10, "F");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...INK);
+      doc.text(
+        `Scenario ${si + 1}: ${sim.title || sim.scenario_type || "Exploit"}`,
+        ML + 8, y + 7
+      );
+      y += 13;
+
+      // Clauses exploited
+      if ((sim.clauses_exploited || []).length > 0) {
+        doc.setFontSize(7.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...MUTED);
+        doc.text(`Clauses: ${sim.clauses_exploited.join(", ")}`, ML + 2, y);
+        y += 6;
+      }
+
+      // Steps
+      (sim.steps || []).forEach((step, i) => {
+        y = check(y, 12);
+        const sLines = doc.splitTextToSize(step, CW - 16);
+        const sH     = sLines.length * 4.8 + 6;
+        doc.setFillColor(tr, tg, tb);
+        doc.circle(ML + 5, y + 4, 3.5, "F");
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text(String(i + 1), ML + 5, y + 5.5, { align: "center" });
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...INK);
+        doc.text(sLines, ML + 12, y + 5);
+        y += sH + 2;
+      });
+
+      // Impact row
+      if (sim.financial_impact || sim.legal_impact) {
+        y = check(y, 14);
+        const colW2 = (CW - 4) / 2;
+
+        if (sim.financial_impact) {
+          doc.setFillColor(255, 248, 230);
+          doc.rect(ML, y, colW2, 12, "F");
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(180, 100, 10);
+          doc.text("FINANCIAL", ML + 4, y + 5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...INK);
+          const fL = doc.splitTextToSize(sim.financial_impact, colW2 - 8);
+          doc.setFontSize(7.5);
+          doc.text(fL[0] || "", ML + 4, y + 10);
+        }
+        if (sim.legal_impact) {
+          const lx = ML + colW2 + 4;
+          doc.setFillColor(240, 238, 255);
+          doc.rect(lx, y, colW2, 12, "F");
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...BRAND);
+          doc.text("LEGAL", lx + 4, y + 5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...INK);
+          const lL = doc.splitTextToSize(sim.legal_impact, colW2 - 8);
+          doc.setFontSize(7.5);
+          doc.text(lL[0] || "", lx + 4, y + 10);
+        }
+        y += 16;
+      }
+
+      y = rule(y);
+    });
+  }
+
+  // ── Top Priority Fixes ─────────────────────────────────────────────────────
   if (fixes.length > 0) {
-    doc.addPage();
-    y = margin;
-    y = addText("Top Priority Fixes", margin, y, contentW, 14, [240, 239, 248], "bold");
-    y += 6;
+    y = check(y, 40);
+    y = sectionHeading(y, "Top Priority Fixes");
 
     fixes.forEach(fix => {
-      y = ensurePage(y, 28);
-      doc.setFillColor(19, 19, 31);
-      doc.rect(margin, y - 4, contentW, 9, "F");
-      doc.setTextColor(124, 106, 247);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text(`#${fix.rank} — ${fix.issue || ""}`, margin + 3, y + 2);
-      y += 10;
+      const urgLines   = doc.splitTextToSize(fix.why_urgent || "", CW - 20);
+      const actLines   = doc.splitTextToSize(fix.action    || "", CW - 20);
+      const blockH     = urgLines.length * 4.8 + actLines.length * 4.8 + 22;
+      y = check(y, blockH);
 
+      // Rank badge
+      doc.setFillColor(...BRAND);
+      doc.circle(ML + 5, y + 5, 5, "F");
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${fix.rank}`, ML + 5, y + 7, { align: "center" });
+
+      // Fix title
+      doc.setFontSize(9.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...INK);
+      doc.text(fix.issue || "", ML + 14, y + 7);
+      y += 14;
+
+      // Why urgent
       if (fix.why_urgent) {
-        y = addText(`⚠ ${fix.why_urgent}`, margin + 3, y, contentW - 6, 7.5, [255, 138, 154]);
+        doc.setFillColor(255, 240, 242);
+        const wH = urgLines.length * 4.8 + 7;
+        doc.rect(ML, y, CW, wH, "F");
+        doc.setFillColor(...RISK_COLOR.High);
+        doc.rect(ML, y, 3, wH, "F");
+        doc.setFontSize(7.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...INK);
+        doc.text(urgLines, ML + 7, y + 5);
+        y += wH + 3;
       }
+
+      // Action
       if (fix.action) {
-        y = addText(`→ ${fix.action}`, margin + 3, y, contentW - 6, 7.5, [152, 150, 176]);
+        doc.setFillColor(240, 238, 255);
+        const aH = actLines.length * 4.8 + 7;
+        doc.rect(ML, y, CW, aH, "F");
+        doc.setFillColor(...BRAND);
+        doc.rect(ML, y, 3, aH, "F");
+        doc.setFontSize(7.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...INK);
+        doc.text(actLines, ML + 7, y + 5);
+        y += aH + 6;
       }
-      y += 8;
+
+      y = rule(y);
     });
   }
 
-  // ── Footer on every page ───────────────────────────────────────────────────
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
+  // ── Update all footers ─────────────────────────────────────────────────────
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
     doc.setPage(i);
+    doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(90, 88, 110);
+    doc.setTextColor(...MUTED);
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.3);
+    doc.line(ML, PH - FOOTER_H, PW - MR, PH - FOOTER_H);
     doc.text(
-      "RiskRadar analysis for informational purposes only. Not legal advice. Consult a qualified attorney.",
-      margin, pageHeight - 8, { maxWidth: contentW - 20 }
+      "RiskRadar  |  For informational purposes only. Not legal advice. Consult a qualified attorney.",
+      ML, PH - 8
     );
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: "right" });
+    doc.text(`Page ${i} of ${total}`, PW - MR, PH - 8, { align: "right" });
   }
 
   doc.save(`riskradar-audit-${Date.now()}.pdf`);
