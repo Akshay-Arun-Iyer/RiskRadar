@@ -55,22 +55,23 @@ export default function App() {
           {/* ── Hero ── */}
           <section style={styles.hero}>
             <h2 style={styles.heroTitle}>
-              Detect Legal Risks in Seconds
+              Find How Your Contract Can Be Used Against You
             </h2>
             <p style={styles.heroSub}>
-              Paste or upload any contract. Our AI pinpoints loopholes, missing clauses,
-              and one-sided terms — with plain-English explanations and ready-to-use fixes.
+              Paste or upload any contract. RiskRadar thinks like an adversary —
+              detecting exploit chains, silence traps, and one-sided clauses
+              before you sign.
             </p>
 
             {/* Feature pills */}
             <div style={styles.pills}>
               {[
-                "⚠ Risky Clauses",
-                "📋 Missing Provisions",
-                "⚖ One-sided Terms",
-                "💡 Suggested Fixes",
-                "📝 Rewritten Clauses",
-                "📄 PDF Report",
+                "🔗 Exploit Chains",
+                "🚨 Adversarial Analysis",
+                "🪤 Silence Traps",
+                "💸 Payment Exploits",
+                "🔒 IP Block Detection",
+                "📄 PDF Audit Report",
               ].map((pill) => (
                 <span key={pill} style={styles.pill}>{pill}</span>
               ))}
@@ -125,7 +126,7 @@ export default function App() {
           <p>
             RiskRadar — For informational purposes only, not legal advice.
             &nbsp;·&nbsp;
-            <span style={{ color: "#7c6af7" }}>RiskRadar</span>
+            <span style={{ color: "#7c6af7" }}>Not a substitute for a lawyer.</span>
           </p>
         </footer>
       </div>
@@ -160,12 +161,12 @@ function EmptyState() {
 
       <div style={styles.emptyFeatures}>
         {[
-          { icon: "🔍", text: "Vague & ambiguous language" },
-          { icon: "📋", text: "Missing critical clauses" },
-          { icon: "⚖️",  text: "One-sided provisions" },
-          { icon: "💰", text: "Risky payment & indemnity terms" },
-          { icon: "🔗", text: "Internal inconsistencies" },
-          { icon: "✏️",  text: "Rewritten safer clauses" },
+          { icon: "🔗", text: "Multi-clause exploit chains" },
+          { icon: "🪤", text: "Silence = consent traps" },
+          { icon: "💸", text: "Payment & termination exploits" },
+          { icon: "🔒", text: "IP ownership blocks" },
+          { icon: "🚨", text: "Adversarial abuse scenarios" },
+          { icon: "✏️",  text: "Rewritten abuse-resistant clauses" },
         ].map(({ icon, text }) => (
           <div key={text} style={styles.emptyFeature}>
             <span style={styles.emptyFeatureIcon}>{icon}</span>
