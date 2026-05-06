@@ -44,35 +44,35 @@ Most real contract risks don't live in one clause — they emerge from combinati
 Step-by-step, realistic scenarios showing exactly how each exploit plays out in the real world — with financial and legal impact named concretely.
 
 ### 🔒 Ownership Block Detection
-Detects the **"Paid But No Ownership"** trap — when a Client can pay the full contract value but never legally receive the intellectual property they paid for.
+Detects the **"Paid But No Ownership"** trap — when a Client pays the full contract value but never legally receives the intellectual property they paid for.
 
 ### 🛠️ Exploit-Eliminating Fixes
-Every fix is validated to fully close the exploit — not reduce it, not delay it. Includes rewritten clauses that are bilateral, objective, and enforceable.
+Every fix is validated to fully close the exploit — not reduce it, not delay it. Includes rewritten clauses that are bilateral, objective, and enforceable — with actual contract language, not descriptions.
 
 ### 📊 Prioritized Risk Report
-Top 5 risks ranked by financial impact and likelihood of abuse — so you know exactly what to fix first.
+Issues ranked by financial impact and likelihood of abuse — so you know exactly what to fix first.
 
 ### 📄 PDF Export
-Download a formatted multi-page analysis report for sharing with your team or attorney.
+Download a clean, formatted multi-page audit report for sharing with your team or attorney.
 
 ---
 
 ## 🖥️ Interface Preview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Overall Risk: CRITICAL                                  │
-│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░  High: 4  Med: 3  Low: 1  │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ ⚠ HIGH   Section 3 — Payment Terms               │   │
-│  │ 🔎 ROOT CAUSE  Payment not linked to milestones   │   │
-│  │ ⚡ EXPLOIT  Developer receives 100% upfront...    │   │
-│  │          [ View fix & rewritten clause ↓ ]        │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                          │
-│  TABS: Issues | Exploit Chains | Abuse Scenarios | Fixes │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Overall Risk: CRITICAL                                      │
+│  Critical: 2  High: 6  Medium: 0  Low: 0  Chains: 3        │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ ⚠ HIGH   Section 3 — Payment Terms                    │ │
+│  │ 🔎 ROOT CAUSE  Payment not linked to milestones        │ │
+│  │ ⚡ EXPLOIT  Developer receives 100% upfront...         │ │
+│  │          [ View fix & rewritten clause ↓ ]             │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                              │
+│  TABS: Issues | Exploit Chains | Abuse Scenarios | Fixes    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -112,6 +112,8 @@ npm run dev
 
 Open **http://localhost:3000** in your browser.
 
+> **Note:** In production (`NODE_ENV=production`), the app is served at **http://localhost:5000**
+
 ---
 
 ## 📁 Project Structure
@@ -119,7 +121,8 @@ Open **http://localhost:3000** in your browser.
 ```
 RiskRadar/
 ├── server/
-│   └── index.js                    # Express backend + AI prompt engine
+│   ├── index.js                    # Express backend + AI prompt engine
+│   └── clauseClassifier.js         # Clause pre-classifier and section tagger
 ├── client/
 │   ├── public/
 │   │   └── sample-contract.txt     # Built-in test contract
@@ -172,9 +175,11 @@ Phase 4 — Abuse Scenario Enforcement
 | 💸 Payment Loss | Upfront payments with no delivery guarantee or refund |
 | 🪤 Acceptance Trap | Silence-based acceptance that binds you to defective work |
 | 🔒 Ownership Block | Paying in full but never legally receiving the IP you bought |
-| 🚪 Termination Exploit | Developer exits while keeping your money |
+| 🚪 Termination Exploit | One party exits while keeping your money and delivering nothing |
 | ⚡ Unilateral Control | "Sole discretion", "deemed complete", "as determined by" |
 | 🔗 Exploit Chains | Multi-clause combos that look fine alone but combine dangerously |
+| 🤖 Data Weaponization | Perpetual data licenses and AI training rights on your business data |
+| ⚖️ Rigged Arbitration | Arbitrator, venue, language, and rules all chosen by one party |
 
 ---
 
@@ -182,10 +187,9 @@ Phase 4 — Abuse Scenario Enforcement
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | ✅ | Your Groq or OpenAI API key |
-| `OPENAI_API_BASE` | Groq only | `https://api.groq.com/openai/v1` |
+| `OPENAI_API_KEY` | ✅ | Your Groq API key |
+| `OPENAI_API_BASE` | ✅ | `https://api.groq.com/openai/v1` |
 | `OPENAI_MODEL` | Optional | Default: `llama-3.3-70b-versatile` |
-| `ANTHROPIC_API_KEY` | Alternative | Uses Claude instead of Groq/OpenAI |
 | `PORT` | Optional | Server port, default `5000` |
 
 ---
