@@ -175,7 +175,7 @@ export function ResultsPanel({ analysis, onReset }) {
       )}
 
       <p style={s.disclaimer}>
-        AI-generated analysis for informational purposes only. Not legal advice. Consult a qualified attorney.
+        RiskRadar analysis is for informational purposes only. Not legal advice. Consult a qualified attorney.
       </p>
     </div>
   );
