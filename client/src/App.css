@@ -1,0 +1,89 @@
+/* ═══════════════════════════════════════════════════════════════
+   App.css — Responsive overrides & media queries
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet: stack columns vertically ── */
+@media (max-width: 860px) {
+  /* Target the grid via a data-grid attribute trick isn't available in React
+     inline styles, so we add this override for the column grid */
+  main > div:last-child {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Mobile: tighten spacing ── */
+@media (max-width: 480px) {
+  main {
+    padding: 20px 14px 36px !important;
+  }
+
+  /* Hero */
+  section {
+    margin-bottom: 24px !important;
+    padding: 0 !important;
+  }
+
+  /* Panel card */
+  div[style*="border-radius: 18px"] {
+    padding: 16px 14px !important;
+  }
+
+  /* Count badges in ResultsPanel */
+  div[style*="minWidth: 54"] {
+    min-width: 42px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* Textarea min-height */
+  textarea {
+    min-height: 220px !important;
+  }
+
+  /* Verdict row wrap */
+  div[style*="justifyContent: space-between"] {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  /* Actions: stack vertically */
+  div[style*="gap: 10px"] > button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Hover effects not possible in inline styles ── */
+button:not(:disabled):hover {
+  opacity: 0.92;
+}
+
+/* Textarea hover border */
+textarea:hover {
+  border-color: rgba(124, 106, 247, 0.3) !important;
+}
+
+/* Drop zone hover */
+div[role="button"]:hover {
+  border-color: rgba(124, 106, 247, 0.4) !important;
+}
+
+/* Sample button hover */
+button[style*="rgba(124,106,247,0.25)"]:hover {
+  background: rgba(124, 106, 247, 0.08) !important;
+}
+
+/* Issue card hover */
+div[style*="border-radius: 14px"]:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Expand hint hover */
+button[style*="border-top"]:hover {
+  color: #9896b0 !important;
+  background: rgba(255,255,255,0.02) !important;
+}
+
+/* Filter button hover */
+button[style*="rgba(255,255,255,0.08)"]:hover {
+  background: rgba(255,255,255,0.05) !important;
+}

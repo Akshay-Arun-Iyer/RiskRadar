@@ -1,0 +1,35 @@
+SERVICE AGREEMENT
+
+This Service Agreement ("Agreement") is entered into as of the date of signing, between Client ("Client") and Service Provider ("Provider").
+
+1. SERVICES
+Provider agrees to perform services as needed. The scope of work will be determined by the Client from time to time. Provider will use reasonable efforts to complete tasks in a timely manner.
+
+2. PAYMENT
+Client shall pay Provider for services rendered. Payment will be made when Client decides it is appropriate. Provider may not charge late fees. All payments are final and non-refundable under any circumstances.
+
+3. INTELLECTUAL PROPERTY
+Any work product created by Provider shall become the property of Client upon payment. Provider warrants that all deliverables will be original. Client may use the work product for any purpose whatsoever, including sublicensing to third parties without additional compensation to Provider.
+
+4. CONFIDENTIALITY
+Provider agrees to keep Client information confidential. This obligation shall remain in effect forever. Client has no confidentiality obligations to Provider.
+
+5. INDEMNIFICATION
+Provider shall indemnify, defend, and hold harmless Client and its officers, directors, employees, agents, and successors from and against any and all claims, damages, losses, costs, and expenses (including reasonable attorneys' fees) arising out of or related to Provider's services, even if such claims result from Client's own negligence.
+
+6. LIABILITY
+Provider's liability for any claim shall not be limited in any way. Client may seek any and all damages it deems appropriate. Provider waives any right to cap damages.
+
+7. TERMINATION
+Client may terminate this Agreement for any reason or no reason. Provider may not terminate this Agreement without Client's written consent.
+
+8. GOVERNING LAW
+This Agreement shall be governed by applicable law.
+
+9. GENERAL
+This Agreement constitutes the entire agreement. Any modifications must be agreed upon. The parties agree to resolve disputes amicably.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement.
+
+CLIENT: ______________________
+PROVIDER: ______________________

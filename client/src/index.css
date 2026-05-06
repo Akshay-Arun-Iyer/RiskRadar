@@ -1,0 +1,106 @@
+/* ═══════════════════════════════════════════════════════════════
+   AI Contract Analyzer — Global Styles
+   Aesthetic: Legal-precision meets dark editorial luxury
+   Fonts: DM Serif Display (headings) + DM Sans (body)
+   ═══════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* ── Color Palette ── */
+  --bg-primary:     #09090f;
+  --bg-secondary:   #10101a;
+  --bg-card:        #13131f;
+  --bg-card-hover:  #181828;
+  --bg-input:       #0e0e1a;
+
+  --border:         rgba(255,255,255,0.07);
+  --border-strong:  rgba(255,255,255,0.14);
+
+  --text-primary:   #f0eff8;
+  --text-secondary: #9896b0;
+  --text-muted:     #5c5a72;
+
+  --accent:         #7c6af7;        /* indigo-violet */
+  --accent-glow:    rgba(124,106,247,0.25);
+  --accent-soft:    rgba(124,106,247,0.10);
+
+  /* Risk colours */
+  --high:           #ff4d6d;
+  --high-bg:        rgba(255,77,109,0.10);
+  --high-border:    rgba(255,77,109,0.30);
+
+  --medium:         #f4a942;
+  --medium-bg:      rgba(244,169,66,0.10);
+  --medium-border:  rgba(244,169,66,0.30);
+
+  --low:            #3ecf8e;
+  --low-bg:         rgba(62,207,142,0.10);
+  --low-border:     rgba(62,207,142,0.30);
+
+  /* ── Typography ── */
+  --font-serif:  'DM Serif Display', Georgia, serif;
+  --font-sans:   'DM Sans', system-ui, -apple-system, sans-serif;
+
+  /* ── Spacing ── */
+  --radius-sm:   6px;
+  --radius-md:   12px;
+  --radius-lg:   18px;
+  --radius-xl:   24px;
+
+  /* ── Transitions ── */
+  --transition: 200ms ease;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-glow);
+  color: var(--text-primary);
+}
+
+/* ── Utility classes ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border-width: 0;
+}
