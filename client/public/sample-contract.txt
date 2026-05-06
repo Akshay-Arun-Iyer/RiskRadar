@@ -1,35 +1,88 @@
-SERVICE AGREEMENT
+SOFTWARE DEVELOPMENT AGREEMENT
 
-This Service Agreement ("Agreement") is entered into as of the date of signing, between Client ("Client") and Service Provider ("Provider").
+This Agreement is entered into on 1 May 2026 between:
+PROVIDER: Nexus Build Studio ("Provider")
+CLIENT: ________________________________ ("Client")
+for development of a custom e-commerce web platform.
 
-1. SERVICES
-Provider agrees to perform services as needed. The scope of work will be determined by the Client from time to time. Provider will use reasonable efforts to complete tasks in a timely manner.
+1. SCOPE OF WORK
+Provider shall design and develop the platform. Final features,
+technical architecture, and scope shall be determined by Provider
+in its sole discretion. Provider may modify scope at any time as
+deemed appropriate without Client approval.
 
-2. PAYMENT
-Client shall pay Provider for services rendered. Payment will be made when Client decides it is appropriate. Provider may not charge late fees. All payments are final and non-refundable under any circumstances.
+2. TIMELINE
+Work shall begin on the Effective Date and continue until Provider
+determines, in its reasonable judgement, that the platform is
+substantially complete. All delivery dates are non-binding estimates.
+Provider is not liable for delays regardless of cause.
 
-3. INTELLECTUAL PROPERTY
-Any work product created by Provider shall become the property of Client upon payment. Provider warrants that all deliverables will be original. Client may use the work product for any purpose whatsoever, including sublicensing to third parties without additional compensation to Provider.
+3. PAYMENT
+Total fee: USD 45,000.
+  (a) 60% (USD 27,000) due upon signing.
+  (b) 30% (USD 13,500) due within 5 days of signing.
+  (c) 10% (USD 4,500) upon Provider's confirmation of go-live.
+All payments are non-refundable under any circumstances including
+non-performance, termination, or dissatisfaction. Additional work
+billed at USD 350/hour; invoices due within 48 hours; late invoices
+accrue 3% interest per day, compounded daily.
 
-4. CONFIDENTIALITY
-Provider agrees to keep Client information confidential. This obligation shall remain in effect forever. Client has no confidentiality obligations to Provider.
+4. ACCEPTANCE
+Client has 2 business days from Provider's delivery notification
+to submit written objections. Failure to object for any reason —
+including non-receipt, illness, or absence — constitutes irrevocable
+final acceptance. Partial delivery of any feature counts as full
+delivery of the corresponding milestone. Final completion of the
+platform shall be declared by Provider, and Provider's declaration
+is conclusive and binding on Client.
 
-5. INDEMNIFICATION
-Provider shall indemnify, defend, and hold harmless Client and its officers, directors, employees, agents, and successors from and against any and all claims, damages, losses, costs, and expenses (including reasonable attorneys' fees) arising out of or related to Provider's services, even if such claims result from Client's own negligence.
+5. INTELLECTUAL PROPERTY
+All IP — source code, designs, models, and documentation — remains
+the sole property of Provider. A revocable, non-exclusive license
+may be granted to Client only after (a) full payment of every invoice
+ever issued, (b) Provider's written declaration of completion, and
+(c) Provider's separate written confirmation of transfer, each at
+Provider's sole discretion. Provider may reuse, resell, or sublicense
+any code or design to any party including Client's competitors without
+notice or compensation to Client. Any feedback or bug report submitted
+by Client is irrevocably assigned to Provider.
 
-6. LIABILITY
-Provider's liability for any claim shall not be limited in any way. Client may seek any and all damages it deems appropriate. Provider waives any right to cap damages.
+6. TERMINATION
+Provider may terminate at any time on 24 hours' written notice.
+Client may terminate only for Provider's uncured material breach
+after a 180-day cure period, during which Client must continue to
+pay all invoices. On termination by either party: all amounts paid
+are retained by Provider as liquidated damages; any unpaid balance
+accelerates and becomes immediately due; Provider has no obligation
+to deliver source code, assets, or documentation.
 
-7. TERMINATION
-Client may terminate this Agreement for any reason or no reason. Provider may not terminate this Agreement without Client's written consent.
+7. INDEMNIFICATION
+Client shall indemnify and hold harmless Provider and its officers,
+employees, and contractors from all claims, losses, and expenses
+arising out of this Agreement, the platform, any Client data, any
+third-party claim, or the negligence or wilful misconduct of any
+Provider party. Provider has no indemnification obligations to Client.
 
-8. GOVERNING LAW
-This Agreement shall be governed by applicable law.
+8. LIMITATION OF LIABILITY
+Provider's total aggregate liability shall not exceed USD 500,
+regardless of cause. Provider is not liable for loss of profit,
+data, goodwill, security breach, downtime, or any consequential
+damages even where advised of the possibility.
 
-9. GENERAL
-This Agreement constitutes the entire agreement. Any modifications must be agreed upon. The parties agree to resolve disputes amicably.
+9. AMENDMENTS
+Provider may amend any term of this Agreement at any time by posting
+updates on its website. Client's continued engagement or payment of
+any invoice within 7 days of posting constitutes acceptance.
 
-IN WITNESS WHEREOF, the parties have executed this Agreement.
+10. DISPUTE RESOLUTION
+All disputes shall be resolved by binding arbitration administered
+by an arbitrator selected by Provider, in a venue chosen by Provider,
+under rules drafted by Provider. Client bears all costs and attorneys'
+fees regardless of outcome. Client waives all rights to class action
+and injunctive relief.
 
-CLIENT: ______________________
-PROVIDER: ______________________
+11. GOVERNING LAW
+This Agreement is governed by the laws of the jurisdiction selected
+by Provider at the time of any dispute.
+
+PROVIDER: ____________________  CLIENT: ____________________
