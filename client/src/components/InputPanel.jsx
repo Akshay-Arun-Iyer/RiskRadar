@@ -170,7 +170,7 @@ export function InputPanel({
       {/* ── Disclaimer ── */}
       <p style={styles.disclaimer}>
         🔒 Documents are processed in-memory only and never stored.
-        This tool provides AI-generated analysis, not legal advice.
+        RiskRadar provides adversarial AI analysis, not legal advice.
       </p>
     </div>
   );
