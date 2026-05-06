@@ -183,7 +183,11 @@ function splitIntoClauses(contractText) {
   const numberedSections = text.split(numberedPattern).map(s => s.trim()).filter(s => s.length > 20);
 
   if (numberedSections.length >= 3) {
-    return numberedSections;
+    // Drop leading chunk if it's just the document title (short, no numbered prefix)
+    return numberedSections.filter((s, i) => {
+      if (i === 0 && s.length < 200 && !/^\s*\d+/.test(s)) return false;
+      return true;
+    });
   }
 
   // Try ALL CAPS heading pattern
