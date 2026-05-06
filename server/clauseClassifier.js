@@ -95,15 +95,14 @@ const CATEGORY_RULES = [
   },
   {
     tag: "DELIVERY",
-    // Atticus: "Delivery" category
+    // Atticus: "Delivery" category — tightened to avoid over-firing on generic verbs
     keywords: [
-      "deliver", "delivery", "delivered", "delivering", "deliverable",
-      "deliverables", "handover", "hand over", "hand-off", "handoff",
-      "submission", "submit", "submitted", "submitting", "provide",
-      "provision of", "supply", "supplied", "supplying", "deploy",
-      "deployment", "release", "releases", "ship", "shipped", "shipping",
-      "due date", "delivery date", "delivery schedule", "on time delivery",
-      "timely delivery", "delivery of work", "delivery of services"
+      "deliver ", "delivery", "delivered", "deliverable",
+      "deliverables", "handover", "hand over", "handoff",
+      "deploy", "deployment", "release the", "ship the", "shipped",
+      "due date", "delivery date", "delivery schedule",
+      "timely delivery", "delivery of work", "delivery of services",
+      "milestone", "go-live", "go live", "launch date"
     ],
     weight: 1.0
   },
