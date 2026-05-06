@@ -280,7 +280,7 @@ export function downloadAnalysisAsPDF(analysis, contractName = "Contract") {
     doc.setFontSize(6.5);
     doc.setTextColor(90, 88, 110);
     doc.text(
-      "AI-generated analysis for informational purposes only. Not legal advice. Consult a qualified attorney.",
+      "RiskRadar analysis for informational purposes only. Not legal advice. Consult a qualified attorney.",
       margin, pageHeight - 8, { maxWidth: contentW - 20 }
     );
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: "right" });
