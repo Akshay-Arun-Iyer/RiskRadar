@@ -43,7 +43,7 @@ export function ResultsPanel({ analysis, onReset }) {
   const overallRisk = analysis?.overall_risk || "Medium";
   const cfg         = RISK_CFG[overallRisk] || RISK_CFG.Medium;
 
-  const counts = { High: 0, Medium: 0, Low: 0 };
+  const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
   issues.forEach(i => { if (counts[i.risk_level] !== undefined) counts[i.risk_level]++; });
 
   const criticalChains = combined.filter(c => c.severity === "Critical").length;
@@ -60,7 +60,7 @@ export function ResultsPanel({ analysis, onReset }) {
             <div style={{ ...s.bannerRisk, color: cfg.color }}>{overallRisk}</div>
           </div>
           <div style={s.counts}>
-            {["High","Medium","Low"].map(lvl => {
+            {["Critical","High","Medium","Low"].map(lvl => {
               const c = RISK_CFG[lvl];
               return (
                 <div key={lvl} style={{ ...s.countBox, background: c.bg, border: `1px solid ${c.border}` }}>
@@ -113,7 +113,7 @@ export function ResultsPanel({ analysis, onReset }) {
       {tab === "Issues" && (
         <div>
           <div style={s.filters}>
-            {["All","High","Medium","Low"].map(f => {
+            {["All","Critical","High","Medium","Low"].map(f => {
               const fc = RISK_CFG[f] || {};
               const isA = filter === f;
               return (
