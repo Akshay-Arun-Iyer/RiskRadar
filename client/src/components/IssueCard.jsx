@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 const RISK = {
+  Critical: { color: "#ff1744", bg: "rgba(255,23,68,0.10)",  border: "rgba(255,23,68,0.35)", icon: "🚨" },
   High:   { color: "#ff4d6d", bg: "rgba(255,77,109,0.08)",  border: "rgba(255,77,109,0.25)",  icon: "⚠" },
   Medium: { color: "#f4a942", bg: "rgba(244,169,66,0.08)",  border: "rgba(244,169,66,0.25)",  icon: "◆" },
   Low:    { color: "#3ecf8e", bg: "rgba(62,207,142,0.08)",  border: "rgba(62,207,142,0.25)",  icon: "●" },
