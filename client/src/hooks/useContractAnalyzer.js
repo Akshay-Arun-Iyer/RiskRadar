@@ -34,15 +34,24 @@ async function extractTextFromFile(file) {
 }
 
 async function analyzeContractText(text) {
-  const response = await fetch(`${API}/analyze`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contractText: text }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Analysis failed");
-  return data;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000); // 60s
+  try {
+    const response = await fetch(`${API}/analyze`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contractText: text }),
+    });
+    clearTimeout(timeout);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Analysis failed");
+    return data;
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err.name === "AbortError") throw new Error("Request timed out. Try a shorter contract or wait a moment and retry.");
+    throw err;
+  }
 }
 
 export function useContractAnalyzer() {
