@@ -116,7 +116,7 @@ OUTPUT — return ONLY this JSON, no markdown, no code fences, no text outside t
       "root_cause": "one sentence — why exploit exists structurally",
       "exploit": "1-2 sentences — exact adversarial sequence, name both parties",
       "fix": "2-3 sentences: mechanism removed + replacement added + trigger condition",
-      "revised_clause": "rewritten clause max 60 words, bilateral, no vague terms"
+      "revised_clause": "write the ACTUAL contract clause text ready to sign — not a description of what it should say. Use legal language. Include specific numbers, timeframes, and party names. Max 60 words. No vague phrases like 'reasonable' or 'appropriate'."
     }
   ],
   "combined_risks": [
