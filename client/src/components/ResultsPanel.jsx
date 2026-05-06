@@ -30,7 +30,7 @@ const SCENARIO_TYPE_CFG = {
   OTHER:              { label: "⚡ Exploit",            color: "#9896b0", bg: "rgba(152,150,176,0.10)",border: "rgba(152,150,176,0.20)" },
 };
 
-const TABS = ["Issues", "Exploit Chains", "Abuse Scenarios", "Top 5 Fixes"];
+const TABS = ["Issues", "Exploit Chains", "Abuse Scenarios", "Top Fixes"];
 
 export function ResultsPanel({ analysis, onReset }) {
   const [tab, setTab]       = useState("Issues");
@@ -165,7 +165,7 @@ export function ResultsPanel({ analysis, onReset }) {
       )}
 
       {/* ── Top 5 Fixes tab ── */}
-      {tab === "Top 5 Fixes" && (
+      {tab === "Top Fixes" && (
         <div style={s.list}>
           {topFixes.length === 0
             ? <EmptyState label="No prioritized fixes generated" />
