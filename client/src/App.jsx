@@ -123,9 +123,9 @@ export default function App() {
 
         <footer style={styles.footer}>
           <p>
-            AI Contract Analyzer — For informational purposes only, not legal advice.
+            RiskRadar — For informational purposes only, not legal advice.
             &nbsp;·&nbsp;
-            <span style={{ color: "#7c6af7" }}>Powered by Claude AI</span>
+            <span style={{ color: "#7c6af7" }}>RiskRadar</span>
           </p>
         </footer>
       </div>
