@@ -25,8 +25,8 @@ export function Header() {
             </svg>
           </div>
           <div>
-            <h1 style={styles.title}>AI Contract Analyzer</h1>
-            <p style={styles.subtitle}>Powered by Claude AI</p>
+            <h1 style={styles.title}>RiskRadar</h1>
+            <p style={styles.subtitle}>Adversarial Contract Analysis</p>
           </div>
         </div>
         <div style={styles.badge}>
