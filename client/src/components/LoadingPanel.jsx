@@ -7,12 +7,12 @@ import React, { useEffect, useState } from "react";
 
 const STAGES = [
   { text: "Reading contract structure…", pct: 15 },
-  { text: "Scanning for vague language…", pct: 30 },
-  { text: "Checking for missing clauses…", pct: 50 },
-  { text: "Detecting one-sided terms…", pct: 65 },
-  { text: "Assessing liability & indemnity…", pct: 80 },
-  { text: "Generating suggested fixes…", pct: 92 },
-  { text: "Finalizing analysis report…", pct: 98 },
+  { text: "Building section checklist…", pct: 30 },
+  { text: "Hunting for exploit patterns…", pct: 50 },
+  { text: "Cross-referencing clauses…", pct: 65 },
+  { text: "Simulating adversarial scenarios…", pct: 80 },
+  { text: "Generating abuse-resistant fixes…", pct: 92 },
+  { text: "Finalizing exploit audit…", pct: 98 },
 ];
 
 export function LoadingPanel({ stage }) {
@@ -46,7 +46,7 @@ export function LoadingPanel({ stage }) {
         <div style={styles.ring2} />
       </div>
 
-      <h2 style={styles.title}>Analyzing your contract…</h2>
+      <h2 style={styles.title}>RiskRadar is auditing your contract…</h2>
       <p style={styles.stage}>{stage || STAGES[stageIdx].text}</p>
 
       {/* Progress bar */}
