@@ -72,8 +72,17 @@ You must produce AT LEAST ONE issue for every section that has a [PAYMENT], [TER
 Do NOT stop after finding the first few issues. Work through EVERY section.
 Sub-clauses within a section each get their own issue if they contain a distinct exploit.
 
-DETECTION RULES — apply all, mark HIGH by default:
-1. CONTROL IMBALANCE: "sole discretion", "as determined by", "deemed", "in its reasonable judgement", "at Provider's option"
+DETECTION RULES — severity guide:
+Mark CRITICAL (not High) for:
+- Indemnity where one party covers the other's own negligence or wilful misconduct
+- Liability cap below 5% of contract value
+- IP ownership retained by wrong party despite full payment
+- All payments kept after termination with zero delivery obligation
+- Arbitrator, venue, AND rules all selected by one party
+- Auto-renewal at price set entirely by one party with no cap
+
+Mark HIGH for all other serious single-clause exploits:
+1. CONTROL IMBALANCE: "sole discretion", "as determined by", "deemed", "in its reasonable judgement"
 2. PAYMENT vs DELIVERY: upfront payment not tied to milestones, non-refundable under any circumstances
 3. PAYMENT PENALTY TRAPS: interest rates above 1% per month, compounding interest, sub-48h invoice windows
 4. SILENCE = CONSENT: any acceptance window under 5 business days, "failure to respond = accepted"
@@ -83,12 +92,12 @@ DETECTION RULES — apply all, mark HIGH by default:
 8. IP BLOCK: IP transfer gated on vague completion, or triple-gated conditions
 9. IP REUSE: provider can reuse custom work for competitors
 10. DATA WEAPONIZATION: perpetual data license, AI training rights, retroactive policy changes
-11. LIABILITY MISMATCH: cap below 10% of contract value, one-sided indemnity, indemnity covering own negligence
-12. AUTO-RENEWAL TRAP: narrow cancellation window, price set by one party at renewal
-13. UNILATERAL AMENDMENT: terms changeable by website post or notice with silence = consent
-14. RIGGED ARBITRATION: arbitrator/venue/language/rules selected by one party
-15. ASYMMETRIC CONFIDENTIALITY: strict obligations on one side, effectively none on the other
-16. CRYPTO PAYMENT TRAP: conversion rate controlled by one party
+11. AUTO-RENEWAL TRAP: narrow cancellation window, price set by one party at renewal
+12. UNILATERAL AMENDMENT: terms changeable by website post or notice with silence = consent
+13. ASYMMETRIC CONFIDENTIALITY: strict obligations on one side, effectively none on the other
+14. CRYPTO PAYMENT TRAP: conversion rate controlled by one party
+
+Mark MEDIUM for:
 17. MISSING CLAUSES: flag as Medium if contract has no: jurisdiction, force majeure, dispute resolution, warranty, data protection
 
 CROSS-CLAUSE CHAINS — always check these 5 combinations:
@@ -111,7 +120,7 @@ OUTPUT — return ONLY this JSON, no markdown, no code fences, no text outside t
     {
       "section": "exact section name from checklist",
       "tags": ["PAYMENT"],
-      "risk_level": "High",
+      "risk_level": "Critical | High | Medium | Low — use Critical for: indemnity covering own negligence, liability cap under 5% of contract value, IP owned by wrong party, payment kept after zero delivery, rigged arbitration. Use High for serious but single-clause issues. Use Medium for missing clauses or moderate imbalance.",
       "issue": "one sentence defect — name the mechanism",
       "root_cause": "one sentence — why exploit exists structurally",
       "exploit": "1-2 sentences — exact adversarial sequence, name both parties",
