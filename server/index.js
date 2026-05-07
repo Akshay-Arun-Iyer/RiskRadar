@@ -72,6 +72,14 @@ You must produce AT LEAST ONE issue for every section that has a [PAYMENT], [TER
 Do NOT stop after finding the first few issues. Work through EVERY section.
 Sub-clauses within a section each get their own issue if they contain a distinct exploit.
 
+IMPORTANT — USE ALL FOUR RISK LEVELS. Your analysis is wrong if Medium and Low are both zero.
+- Governing law with no jurisdiction = Medium
+- No warranty clause = Medium
+- No force majeure = Medium
+- Asymmetric notice requirements = Low
+- Confidentiality imbalance (without payment exploit) = Low
+Do NOT mark everything Critical or High. Reserve Critical for the 5 rules above only.
+
 DETECTION RULES — severity guide:
 Mark CRITICAL (not High) for:
 - Indemnity where one party covers the other's own negligence or wilful misconduct
@@ -321,8 +329,45 @@ function validateResult(result) {
   // Cap top_fixes at 5
   result.top_fixes = result.top_fixes.slice(0, 5);
 
+  // ── Force Medium/Low on known lower-severity sections ──────────────────────
+  // Llama models tend to mark everything High/Critical. We deterministically
+  // downgrade sections that are structurally medium or low severity so the
+  // dashboard always shows all four risk levels.
+  const MEDIUM_KEYWORDS = [
+    "governing law", "warranties", "warranty", "force majeure",
+    "representations", "entire agreement", "severability"
+  ];
+  const LOW_KEYWORDS = [
+    "notices", "notice", "confidentiality", "assignment",
+    "general", "miscellaneous"
+  ];
+
+  result.issues = result.issues.map(issue => {
+    const s = (issue.section || "").toLowerCase();
+    const isHigh = issue.risk_level === "High";
+    const isMed  = issue.risk_level === "Medium";
+
+    // Only downgrade if not already correctly high due to a payment/IP/termination exploit
+    const hasPaymentExploit = (issue.exploit_explanation || "").toLowerCase()
+      .match(/payment|money|fee|refund|terminat|ip|ownership/);
+
+    if (!hasPaymentExploit) {
+      if (MEDIUM_KEYWORDS.some(k => s.includes(k)) && isHigh) {
+        return { ...issue, risk_level: "Medium" };
+      }
+      if (LOW_KEYWORDS.some(k => s.includes(k)) && (isHigh || isMed)) {
+        return { ...issue, risk_level: "Low" };
+      }
+    }
+    return issue;
+  });
+
   const issueCount = result.issues.length;
+  const riskBreakdown = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+  result.issues.forEach(i => { if (riskBreakdown[i.risk_level] !== undefined) riskBreakdown[i.risk_level]++; });
+
   console.log(`✅ Issues after dedup: ${issueCount}`);
+  console.log(`📊 Risk breakdown: Critical=${riskBreakdown.Critical} High=${riskBreakdown.High} Medium=${riskBreakdown.Medium} Low=${riskBreakdown.Low}`);
   if (issueCount < 15) {
     console.warn(`⚠ Only ${issueCount} issues found — target is 15+`);
   }
